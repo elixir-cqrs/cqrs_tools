@@ -12,9 +12,16 @@ defmodule Blunt.Behaviour do
 
     case Code.ensure_compiled(module) do
       {:module, module} ->
-        if has_all_callbacks?(module, behaviour_module),
-          do: {:ok, module},
-          else: {:error, error}
+        case has_all_callbacks?(module, behaviour_module) do
+          true ->
+            {:ok, module}
+
+          {:error, missing_callbacks} ->
+            missing = inspect(missing_callbacks)
+            actual = module.__info__(:functions) |> inspect()
+            error = "#{error}\nExpected: #{missing}\nGot: #{actual}"
+            {:error, error}
+        end
 
       _ ->
         {:error, error}
@@ -45,14 +52,16 @@ defmodule Blunt.Behaviour do
     callbacks = behaviour_module.behaviour_info(:callbacks)
     optional_callbacks = behaviour_module.behaviour_info(:optional_callbacks) |> Keyword.keys()
 
-    callbacks
-    |> Enum.reject(fn {name, _arity} -> Enum.member?(optional_callbacks, name) end)
-    |> Enum.all?(fn {name, arity} ->
-      # module.__info__(:functions)
-      # |> IO.inspect(label: "#{inspect(module)} ~/code/personal/blunt/apps/blunt_data/lib/blunt/behaviour.ex:52")
+    missing_callbacks =
+      callbacks
+      |> Enum.reject(fn {name, _arity} -> Enum.member?(optional_callbacks, name) end)
+      |> Enum.reject(fn {name, arity} ->
+        function_exported?(module, name, arity)
+      end)
 
-      function_exported?(module, name, arity)
-      # |> IO.inspect(label: "#{inspect(module)} #{inspect(name)}/#{inspect(arity)}")
-    end)
+    case missing_callbacks do
+      [] -> true
+      missing_callbacks -> {:error, missing_callbacks}
+    end
   end
 end
