@@ -139,42 +139,55 @@ defmodule Blunt.Data.Factories.Factory do
   end
 
   def log_value(%__MODULE__{opts: opts}, value, field, lazy, type) do
-    field = ANSI.format([:blue, :bright, to_string(field)])
-    type_prefix = if lazy, do: "lazy ", else: ""
-    debug(value, "#{type_prefix}#{type} #{field}", opts)
+    if Keyword.get(opts, :debug, false) do
+      field = ANSI.format([:blue, :bright, to_string(field)])
+      type_prefix = if lazy, do: "lazy ", else: ""
+      debug(value, "#{type_prefix}#{type} #{field}", opts)
+    else
+      value
+    end
   end
 
   defp debug(%{opts: opts} = factory, :self) do
-    label = ANSI.format([:green, "build"])
-    debug(factory, label, opts)
+    if Keyword.get(opts, :debug, false) do
+      label = ANSI.format([:green, "build"])
+      debug(factory, label, opts)
+    end
+
     factory
   end
 
   defp debug(%{final_message: final_message, opts: opts} = factory, :final_message) do
-    label = ANSI.format([:green, "deliver"])
+    if Keyword.get(opts, :debug, false) do
+      label = ANSI.format([:green, "deliver"])
 
-    final_message =
-      cond do
-        is_map(final_message) ->
-          case Keyword.get(opts, :discarded_data, :hide) do
-            value when value in [:hide, false] ->
-              case Map.get(final_message, :discarded_data) do
-                nil ->
-                  final_message
+      final_message =
+        cond do
+          is_map(final_message) ->
+            case Keyword.get(opts, :discarded_data, :hide) do
+              value when value in [:hide, false] ->
+                case Map.get(final_message, :discarded_data) do
+                  nil ->
+                    final_message
 
-                _ ->
-                  Map.put(final_message, :discarded_data, "configure the factory option 'discarded_data: true' to show")
-              end
+                  _ ->
+                    Map.put(
+                      final_message,
+                      :discarded_data,
+                      "configure the factory option 'discarded_data: true' to show"
+                    )
+                end
 
-            _ ->
-              final_message
-          end
+              _ ->
+                final_message
+            end
 
-        true ->
-          final_message
-      end
+          true ->
+            final_message
+        end
 
-    debug(final_message, label, opts)
+      debug(final_message, label, opts)
+    end
 
     factory
   end
