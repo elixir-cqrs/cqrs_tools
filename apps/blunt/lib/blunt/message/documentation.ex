@@ -34,7 +34,7 @@ defmodule Blunt.Message.Documentation do
       optiondoc: optiondoc,
       message_module: module,
       metadatadoc: metadatadoc,
-      moduledoc: {line || 1, shortdoc <> fielddoc <> optiondoc <> metadatadoc}
+      moduledoc: {line || 1, shortdoc <> fielddoc <> metadatadoc}
     }
   end
 
